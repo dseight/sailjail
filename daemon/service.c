@@ -47,8 +47,14 @@
 #include "stringset.h"
 #include "settings.h"
 
+#ifdef HAVE_LIBDBUSACCESS
 #include <dbusaccess_peer.h>
 #include <dbusaccess_policy.h>
+#else
+/* We should end up here only when e.g. doing debug builds on desktop */
+# warning Missing libdbusaccess package - Access policy is disabled
+typedef void DAPolicy;
+#endif
 
 /* ========================================================================= *
  * Types
@@ -478,8 +484,10 @@ static bool
 service_is_privileged(const gchar *sender)
 {
     static DAPolicy *policy = NULL;
+#ifdef HAVE_LIBDBUSACCESS
     if (!policy)
         policy = da_policy_new(SERVICE_PRIVILEGED_POLICY);
+#endif
     return service_test_policy(sender, policy);
 }
 
@@ -487,14 +495,17 @@ static bool
 service_is_mdm(const gchar *sender)
 {
     static DAPolicy *policy = NULL;
+#ifdef HAVE_LIBDBUSACCESS
     if (!policy)
         policy = da_policy_new(SERVICE_MDM_POLICY);
+#endif
     return service_test_policy(sender, policy);
 }
 
 static bool
 service_test_policy(const gchar *sender, DAPolicy *policy)
 {
+#ifdef HAVE_LIBDBUSACCESS
     DA_ACCESS access = DA_ACCESS_DENY;
     DAPeer *peer     = da_peer_get(G_BUS_TO_DA_BUS(PERMISSIONMGR_BUS), sender);
 
@@ -502,6 +513,11 @@ service_test_policy(const gchar *sender, DAPolicy *policy)
         access = da_policy_check(policy, &peer->cred, 0, NULL, DA_ACCESS_DENY);
 
     return access == DA_ACCESS_ALLOW;
+#else
+    (void)sender; //unused
+    (void)policy; //unused
+    return true;
+#endif
 }
 
 /* ------------------------------------------------------------------------- *
