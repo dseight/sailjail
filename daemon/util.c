@@ -117,6 +117,7 @@ strip(char *str)
                 break;
             *dst++ = ' ';
         }
+        *dst = '\0';
     }
     return str;
 }
